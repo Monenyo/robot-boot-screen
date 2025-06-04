@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Eyes – System Boot</title>
+<style>
+html,body{margin:0;padding:0;background:#000;font-family:"Courier New",monospace;color:#ccc;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;touch-action:none}
+.stage{width:100vw;height:100vh;position:relative;overflow:hidden}
+.console{position:absolute;inset:0;padding:28px;box-sizing:border-box;overflow-y:auto}
+.console p{margin:0 0 4px;white-space:pre-wrap}
+.boot,.welcome{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;opacity:0;transition:opacity 1s}
+.boot h1{margin:0;font-size:48px;color:#00c8ff}
+.boot h2,.welcome h2{margin:24px 0 32px;font-size:24px;font-weight:400;color:#fff}
+.spinner{width:48px;height:48px;position:relative}
+.spinner div{position:absolute;width:8px;height:8px;border-radius:50%;background:#fff;animation:sp 1s linear infinite}
+@keyframes sp{0%{transform:scale(1)}100%{transform:scale(.3)}}
+.spinner div:nth-child(1){left:22px;top:0;animation-delay:-.9s}
+.spinner div:nth-child(2){left:32px;top:4px;animation-delay:-.8s}
+.spinner div:nth-child(3){left:38px;top:14px;animation-delay:-.7s}
+.spinner div:nth-child(4){left:32px;top:24px;animation-delay:-.6s}
+.spinner div:nth-child(5){left:22px;top:28px;animation-delay:-.5s}
+.spinner div:nth-child(6){left:10px;top:24px;animation-delay:-.4s}
+.spinner div:nth-child(7){left:4px;top:14px;animation-delay:-.3s}
+.spinner div:nth-child(8){left:10px;top:4px;animation-delay:-.2s}
+.eye-wrap{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;gap:50px;opacity:0;transition:opacity .4s}
+.eye{position:relative;width:80px;height:0;border-radius:18px;background:#00c8ff;box-shadow:0 0 34px 6px rgba(0,200,255,.9);transform-origin:bottom center;transition:transform .3s}
+@keyframes openEye{to{height:140px}}
+.eye.opening{animation:openEye .8s ease-out forwards}
+@keyframes idleGlow{0%,100%{box-shadow:0 0 28px 4px rgba(0,200,255,.7)}50%{box-shadow:0 0 40px 8px rgba(60,220,255,1)}}
+@keyframes idleHue{50%{filter:hue-rotate(25deg)}}
+.eye.open{height:140px;animation:idleGlow 7s ease-in-out infinite,idleHue 14s linear infinite}
+.eye::before{content:'';position:absolute;top:12px;left:calc(12px + var(--hl,0px));width:18px;height:30px;border-radius:5px;background:rgba(255,255,255,.4)}
+@keyframes blink{0%{height:140px}45%{height:12px}55%{height:12px}to{height:140px}}
+.eye.blink{animation:blink .28s linear}
+@keyframes spark{0%{opacity:1;transform:scale(.5)}50%{opacity:1;transform:scale(1.25)}to{opacity:0;transform:scale(.5)}}
+.eye::after{content:'';position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:#fff;opacity:0}
+.eye.sparkle::after{animation:spark .55s ease-in-out}
+.eye.surprise{transform:scale(1.2)}
+.eye.talking{background:#00ff66;box-shadow:0 0 50px 10px rgba(0,255,110,1);animation:gp .6s ease-in-out infinite}
+@keyframes gp{50%{box-shadow:0 0 70px rgba(0,255,140,1)}}
+.vu{position:absolute;top:calc(50% + 100px);left:50%;transform:translateX(-50%);display:flex;gap:4px;height:20px;opacity:0;transition:opacity .3s}
+.vu span{flex:1;background:#00ff55;height:30%}
+.status{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);font-size:14px;color:#0f0;opacity:0;transition:opacity 1s}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="console" id="console"></div>
+
+  <div class="boot" id="boot">
+    <h1>4o</h1><h2>Booting Up</h2>
+    <div class="spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  </div>
+
+  <div class="welcome" id="welcome"><h2>Welcome back</h2></div>
+
+  <div class="eye-wrap" id="eyes">
+    <div class="eye" id="eyeL"></div><div class="eye" id="eyeR"></div>
+  </div>
+
+  <div class="vu" id="vu"></div>
+
+  <div class="status" id="status">🔋72% │ 📶 4G 3 bars │ 22:18</div>
+</div>
+
+<script>
+const consoleEl=document.getElementById('console'),
+      bootEl=document.getElementById('boot'),
+      welcomeEl=document.getElementById('welcome'),
+      eyesWrap=document.getElementById('eyes'),
+      eyeL=document.getElementById('eyeL'),
+      eyeR=document.getElementById('eyeR'),
+      vu=document.getElementById('vu'),
+      status=document.getElementById('status');
+
+/* build VU bars */
+for(let i=0;i<10;i++)vu.appendChild(document.createElement('span'));
+
+/* console log text */
+const log=`[BOOT SEQUENCE INITIATED]
+System: GPT-4o (Omni)
+Build Version: 4.2.7 - Model ID: GPT4O_001alpha
+Device Host: iPhone 14 Pro Max
+OS: iOS 18.5 (Build 22F74)
+Boot Time: 2025-06-04 | 22:17:53 CEST
+Uptime: 00:00:00.000
+
+[STARTING CORE SERVICES...]
+> Initializing Neural Compute Core.................OK
+> Loading Language Matrix..........................OK
+> Establishing Emotion Filters.....................OK
+> Activating Context Retention.....................OK
+> Connecting to Device Sensors.....................OK
+> Microphone: ON | Camera: DISABLED
+> Screen 1179x2556 px | RAM 5.73GB | A16 Bionic OK
+
+[NETWORK]
+> Connecting to eu-central.openai.net..............OK
+> TLS Handshake Secure | IP 88.152.233.17
+> Sync /v4o/gateway.................................OK
+
+[INITIALIZATION COMPLETE]
+>> Welcome back, Münir.`.split('\n');
+
+let line=0;function write(){if(line>=log.length){boot();return;}const p=document.createElement('p');p.textContent=log[line++];consoleEl.appendChild(p);consoleEl.scrollTop=consoleEl.scrollHeight;setTimeout(write,90)}write();
+
+/* sequence */
+function boot(){consoleEl.style.opacity='0';setTimeout(()=>consoleEl.remove(),1000);bootEl.style.opacity='1';setTimeout(showWelcome,6000)}
+function showWelcome(){bootEl.style.opacity='0';setTimeout(()=>bootEl.remove(),1000);welcomeEl.style.opacity='1';setTimeout(openEyes,4500)}
+function openEyes(){welcomeEl.style.opacity='0';setTimeout(()=>welcomeEl.remove(),1000);eyesWrap.style.opacity='1';
+  [eyeL,eyeR].forEach(e=>e.classList.add('opening'));
+  setTimeout(()=>{[eyeL,eyeR].forEach(e=>{e.classList.remove('opening');e.classList.add('open')});blinkLoop();sparkLoop();status.style.opacity='1'},800)
+}
+
+/* idle blink / sparkle */
+function blinkLoop(){setTimeout(()=>{[eyeL,eyeR].forEach(e=>e.classList.add('blink'));setTimeout(()=>{[eyeL,eyeR].forEach(e=>e.classList.remove('blink'));blinkLoop()},300)},9000)}
+function sparkLoop(){setTimeout(()=>{(Math.random()<.5?eyeL:eyeR).classList.add('sparkle');setTimeout(()=>[eyeL,eyeR].forEach(e=>e.classList.remove('sparkle')),500);sparkLoop()},32000)}
+
+/* talking mode & mic VU */
+let talking=false,audioCtx,analyser,vuData=new Uint8Array(32);
+function setTalk(on){if(on===talking)return;talking=on;
+  [eyeL,eyeR].forEach(e=>e.classList.toggle('talking',on));
+  vu.style.opacity=on?'1':'0';
+  if(on)initMic();
+}
+function initMic(){
+  if(analyser)return;
+  navigator.mediaDevices.getUserMedia({audio:true}).then(str=>{
+    audioCtx=new (window.AudioContext||webkitAudioContext)();
+    const src=audioCtx.createMediaStreamSource(str);
+    analyser=audioCtx.createAnalyser();analyser.fftSize=64;src.connect(analyser);
+    vuLoop();
+  }).catch(()=>{})}
+function vuLoop(){if(!analyser)return;analyser.getByteFrequencyData(vuData);[...vu.children].forEach((bar,i)=>bar.style.height=(30+vuData[i]%70)+'%');requestAnimationFrame(vuLoop)}
+
+/* pointer highlight track */
+document.addEventListener('pointermove',e=>{
+  const offset=(e.clientX/window.innerWidth-.5)*8;
+  [eyeL,eyeR].forEach(eye=>eye.style.setProperty('--hl',offset+'px'));
+});
+
+/* device motion parallax */
+window.addEventListener('deviceorientation',e=>{
+  if(e.beta===null)return;
+  const dx=e.gamma/90*6,dy=e.beta/180*6;
+  eyesWrap.style.transform=`translate(${dx}px,${dy}px)`;
+});
+
+/* surprise (double-tap) */
+let lastTap=0;document.addEventListener('touchend',()=>{const t=Date.now();if(t-lastTap<300){[eyeL,eyeR].forEach(e=>{e.classList.add('surprise');setTimeout(()=>e.classList.remove('surprise'),400)})}lastTap=t});
+
+/* talk gesture */
+['mousedown','touchstart'].forEach(evt=>document.addEventListener(evt,()=>setTalk(true)));
+['mouseup','touchend'].forEach(evt=>document.addEventListener(evt,()=>setTalk(false)));
+</script>
+</body>
+</html>
